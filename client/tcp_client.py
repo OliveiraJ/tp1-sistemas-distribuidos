@@ -1,10 +1,13 @@
+
 import socket
+import os
 
 IP = socket.gethostbyname(socket.gethostname())
 PORT = 4457
 ADDR = (IP, PORT)
 FORMAT = "utf-8"
 SIZE = 1024
+CLIENT_DATA_PATH = "client_data"
 
 
 def main():
@@ -22,9 +25,21 @@ def main():
             print(f"{msg}")
 
         data = input("> ")
+        print("data: "+data)
         data = data.split(" ")
         cmd = data[0]
 
+        client.send(cmd.encode(FORMAT))
+        # filename = data[1]
+        # with open(os.path.join(CLIENT_DATA_PATH, filename), 'wb') as file:
+        #     while True:
+        #         filedata = client.recv(1000000000)
+        #         if not data:
+        #             break
+        #         file.write(filedata)
+        #         print("Receiving file")
+
+        # print(f'Arquivo {cmd} recebido\n')
         if cmd == "help":
             client.send(cmd.encode(FORMAT))
         elif cmd == "logout":
@@ -32,7 +47,15 @@ def main():
             break
         elif cmd == "list":
             client.send(cmd.encode(FORMAT))
-
+        elif cmd == "file":
+            filename = data[1]
+            print(data)
+            send_data = f"{cmd}@{filename}"
+            print(send_data)
+            client.send(send_data.encode(FORMAT))
+        # elif cmd == "":
+        #     print("Envie um comando")
+        #     continue
     print("Disconnected from the server.")
     client.close()
 

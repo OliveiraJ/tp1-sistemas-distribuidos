@@ -17,11 +17,13 @@ def handle_client(conn, addr):
 
     while True:
         data = conn.recv(SIZE).decode(FORMAT)
+        print(data)
         data = data.split("@")
+        print(data)
         cmd = data[0]
+        files = os.listdir(SERVER_DATA_PATH)
 
         if cmd == "list":
-            files = os.listdir(SERVER_DATA_PATH)
             send_data = "OK@"
 
             if len(files) == 0:
@@ -39,6 +41,19 @@ def handle_client(conn, addr):
             data += "help: List all the commands."
 
             conn.send(data.encode(FORMAT))
+
+        elif cmd == "file":
+            filename = data[1]
+            if filename in files:
+                with open(os.path.join(SERVER_DATA_PATH, filename), 'rb') as file:
+                    for send_data in file.readlines():
+                        conn.send(send_data)
+                        print("Sending file")
+                    print("file sent")
+            else:
+                conn.send(("Error@File not found").encode(FORMAT))
+        else:
+            conn.send("Error@Command invalid".encode(FORMAT))
 
     print(f"[DISCONNECTED] {addr} disconnected")
     conn.close()
