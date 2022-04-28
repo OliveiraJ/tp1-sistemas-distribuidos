@@ -8,6 +8,7 @@ ADDR = (IP, PORT)
 FORMAT = "utf-8"
 SIZE = 1024
 CLIENT_DATA_PATH = "client_data"
+# BUFFER_SIZE = 4096
 
 
 def main():
@@ -25,21 +26,11 @@ def main():
             print(f"{msg}")
 
         data = input("> ")
-        print("data: "+data)
         data = data.split(" ")
         cmd = data[0]
 
-        client.send(cmd.encode(FORMAT))
-        # filename = data[1]
-        # with open(os.path.join(CLIENT_DATA_PATH, filename), 'wb') as file:
-        #     while True:
-        #         filedata = client.recv(1000000000)
-        #         if not data:
-        #             break
-        #         file.write(filedata)
-        #         print("Receiving file")
+        # client.send(cmd.encode(FORMAT))
 
-        # print(f'Arquivo {cmd} recebido\n')
         if cmd == "help":
             client.send(cmd.encode(FORMAT))
         elif cmd == "logout":
@@ -49,13 +40,18 @@ def main():
             client.send(cmd.encode(FORMAT))
         elif cmd == "file":
             filename = data[1]
-            print(data)
             send_data = f"{cmd}@{filename}"
-            print(send_data)
             client.send(send_data.encode(FORMAT))
-        # elif cmd == "":
-        #     print("Envie um comando")
-        #     continue
+
+            with open(os.path.join(CLIENT_DATA_PATH, filename), 'wb') as file:
+                while True:
+                    filedata = client.recv(SIZE)
+                    if not filedata:
+                        break
+                    file.write(filedata)
+            print(f"File {filename} received")
+            break
+
     print("Disconnected from the server.")
     client.close()
 

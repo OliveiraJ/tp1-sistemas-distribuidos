@@ -9,6 +9,7 @@ ADDR = (IP, PORT)
 SIZE = 1024
 FORMAT = "utf-8"
 SERVER_DATA_PATH = "server_data"
+# BUFFER_SIZE = 4096
 
 
 def handle_client(conn, addr):
@@ -17,9 +18,7 @@ def handle_client(conn, addr):
 
     while True:
         data = conn.recv(SIZE).decode(FORMAT)
-        print(data)
         data = data.split("@")
-        print(data)
         cmd = data[0]
         files = os.listdir(SERVER_DATA_PATH)
 
@@ -46,10 +45,14 @@ def handle_client(conn, addr):
             filename = data[1]
             if filename in files:
                 with open(os.path.join(SERVER_DATA_PATH, filename), 'rb') as file:
-                    for send_data in file.readlines():
-                        conn.send(send_data)
-                        print("Sending file")
-                    print("file sent")
+                    while True:
+                        bytes_read = file.read(SIZE)
+                        if not bytes_read:
+                            break
+                        conn.sendall(bytes_read)
+
+                print("file sent")
+                break
             else:
                 conn.send(("Error@File not found").encode(FORMAT))
         else:
@@ -71,6 +74,7 @@ def main():
         thread = threading.Thread(target=handle_client, args=(conn, addr))
         thread.start()
         print(f"[ACTIVE CONNECTIONS] {threading.active_count() - 1}")
+    # server.close()
 
 
 if __name__ == "__main__":
