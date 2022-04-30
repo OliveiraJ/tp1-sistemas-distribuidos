@@ -2,6 +2,9 @@
 import os
 import socket
 import threading
+import sys
+from threading import Thread
+import pickle
 
 IP = socket.gethostbyname(socket.gethostname())
 PORT = 4457
@@ -9,10 +12,16 @@ ADDR = (IP, PORT)
 SIZE = 1024
 FORMAT = "utf-8"
 SERVER_DATA_PATH = "server_data"
-# BUFFER_SIZE = 4096
+BUFFER_SIZE = 4096
+CACHE_MAXSIZE = 67108864
 
 
-def handle_client(conn, addr):
+cache = dict()
+
+cache_currentsize: int
+
+
+def handle_client(conn, addr, lock):
     print(f"[NEW CONNECTION] {addr} connected.")
     conn.send("OK@Welcome to the File Server.".encode(FORMAT))
 
@@ -20,6 +29,7 @@ def handle_client(conn, addr):
         data = conn.recv(SIZE).decode(FORMAT)
         data = data.split("@")
         cmd = data[0]
+
         files = os.listdir(SERVER_DATA_PATH)
 
         if cmd == "list":
@@ -28,38 +38,86 @@ def handle_client(conn, addr):
             if len(files) == 0:
                 send_data += "The server directory is empty"
             else:
+                send_data += "\n[Files in directory]:\n"
                 send_data += "\n".join(f for f in files)
-            conn.send(send_data.encode(FORMAT))
+                send_data += "\n[Files in cache]:\n"
+                send_data += "\n".join(k for k in cache.keys())
 
-        elif cmd == "logout":
+            conn.send(send_data.encode(FORMAT))
             break
+
         elif cmd == "help":
             data = "OK@"
-            data += "list: List all the files from the server.\n"
-            data += "logout: Disconnect from the server.\n"
-            data += "help: List all the commands."
+            data += "list: List all the files from the server (on cache and on a local directory).\n"
+            data += "help: List all the commands.\n"
+            data += "[host] [port] [filename]: to request a file from the server.\n"
 
             conn.send(data.encode(FORMAT))
+            break
 
         elif cmd == "file":
             filename = data[1]
-            if filename in files:
-                with open(os.path.join(SERVER_DATA_PATH, filename), 'rb') as file:
-                    while True:
-                        bytes_read = file.read(SIZE)
-                        if not bytes_read:
-                            break
-                        conn.sendall(bytes_read)
+            if filename in files or filename in cache:
+                conn.send(("OK@").encode(FORMAT))
+                if filename in cache:
+                    for data in cache[filename]:
+                        conn.send(data)
 
-                print("file sent")
-                break
+                    print("file sent from cache")
+                    break
+                else:
+                    lock.acquire()
+                    with open(os.path.join(SERVER_DATA_PATH, filename), 'rb') as file:
+                        while True:
+                            bytes_read = file.read(BUFFER_SIZE)
+                            if not bytes_read:
+                                break
+                            conn.send(bytes_read)
+                    print("file sent")
+
+                    with open(os.path.join(SERVER_DATA_PATH, filename), 'rb') as file:
+                        data = file.readlines()
+                        dataSize = Size(data)
+
+                        cache_currentsize = cacheCurrentSize(cache)
+
+                        keys = []
+                        if not dataSize > CACHE_MAXSIZE:
+                            while (cache_currentsize+dataSize) > CACHE_MAXSIZE:
+                                for k in cache:
+                                    keys.append(k)
+
+                                cache_currentsize -= Size(cache[keys[0]])
+                                cache.pop(keys[0])
+                                keys.pop(0)
+
+                            cache.update({filename: data})
+
+                            print("Adding file to cache")
+                    lock.release()
+                    break
             else:
-                conn.send(("Error@File not found").encode(FORMAT))
-        else:
-            conn.send("Error@Command invalid".encode(FORMAT))
+                conn.send(("FNF@").encode(FORMAT))
+                break
 
     print(f"[DISCONNECTED] {addr} disconnected")
     conn.close()
+
+
+def cacheCurrentSize(cache: dict):
+    size = 0
+    for key in cache:
+        size += Size(cache[key])
+
+    return size
+
+
+def Size(data):
+    size = 0
+    for line in data:
+        size += line.__sizeof__()
+
+    return size
 
 
 def main():
@@ -67,14 +125,14 @@ def main():
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server.bind(ADDR)
     server.listen()
+    lock = threading.Semaphore()
     print(f"[LISTENING] Server is listening on {IP}:{PORT}.")
-
     while True:
         conn, addr = server.accept()
-        thread = threading.Thread(target=handle_client, args=(conn, addr))
+        thread = threading.Thread(
+            target=handle_client, args=(conn, addr, lock))
         thread.start()
         print(f"[ACTIVE CONNECTIONS] {threading.active_count() - 1}")
-    # server.close()
 
 
 if __name__ == "__main__":
