@@ -4,20 +4,22 @@ import socket
 import threading
 import sys
 from threading import Thread
-import pickle
 
-IP = socket.gethostbyname(socket.gethostname())
-PORT = 4457
+# List of constants
+IP = "localhost"
+PORT = 4457 if sys.argv[1] == "" else int(sys.argv[1])
 ADDR = (IP, PORT)
 SIZE = 1024
 FORMAT = "utf-8"
 SERVER_DATA_PATH = "server_data"
 BUFFER_SIZE = 4096
+# constant with the max size of the cache memory, this value in bytes is equivalent to 64mb
 CACHE_MAXSIZE = 67108864
 
-
+# Cache memory is created as a python dictionary, where the key is the filename and the value is the data of the file
 cache = dict()
 
+# Current size of the cache memory
 cache_currentsize: int
 
 
@@ -30,6 +32,7 @@ def handle_client(conn, addr, lock):
         data = data.split("@")
         cmd = data[0]
 
+        # List of all files inside the server_data directory
         files = os.listdir(SERVER_DATA_PATH)
 
         if cmd == "list":
@@ -38,9 +41,9 @@ def handle_client(conn, addr, lock):
             if len(files) == 0:
                 send_data += "The server directory is empty"
             else:
-                send_data += "\n[Files in directory]:\n"
+                send_data += "\n[FILES INSIDE THE SERVER DIRECTORY]:\n"
                 send_data += "\n".join(f for f in files)
-                send_data += "\n[Files in cache]:\n"
+                send_data += "\n[FILES IN CACHE]:\n"
                 send_data += "\n".join(k for k in cache.keys())
 
             conn.send(send_data.encode(FORMAT))
@@ -48,9 +51,10 @@ def handle_client(conn, addr, lock):
 
         elif cmd == "help":
             data = "OK@"
-            data += "list: List all the files from the server (on cache and on a local directory).\n"
+            data += "[HELP]"
+            data += "list: List all the files from the server (on cache and on a server local directory).\n"
             data += "help: List all the commands.\n"
-            data += "[host] [port] [filename]: to request a file from the server.\n"
+            data += "file: [HOST](default is localhost) [PORT](default is 4457) file [FILENAME] (to request a file from the server).\n"
 
             conn.send(data.encode(FORMAT))
             break

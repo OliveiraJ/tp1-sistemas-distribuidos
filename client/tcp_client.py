@@ -1,9 +1,12 @@
 
 import socket
 import os
+import sys
 
-IP = socket.gethostbyname(socket.gethostname())
-PORT = 4457
+# IP = socket.gethostbyname(socket.gethostname())
+# PORT = 4457
+IP = sys.argv[1]
+PORT = int(sys.argv[2])
 ADDR = (IP, PORT)
 FORMAT = "utf-8"
 SIZE = 1024
@@ -24,9 +27,9 @@ def main():
     elif res == "OK":
         print(f"{msg}")
 
-    data = input("> ")
-    data = data.split(" ")
-    cmd = data[0]
+    # data = input("> ")
+    # data = data.split(" ")
+    cmd = sys.argv[3]
 
     if cmd == "help":
         client.send(cmd.encode(FORMAT))
@@ -41,7 +44,7 @@ def main():
         print(msg)
 
     elif cmd == "file":
-        filename = data[1]
+        filename = sys.argv[4]
         send_data = f"{cmd}@{filename}"
         client.send(send_data.encode(FORMAT))
         asn = client.recv(SIZE).decode(FORMAT)
