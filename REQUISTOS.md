@@ -16,7 +16,7 @@
 
   - O servidor deve possuir uma função que retorne ao cliente uma lista contendo os nome dos arquivos no cache do servidor; [FEITO]
 
-  - O padrão da linha de comando a ser seguido deve ser: **./tcp_client server_host server_port list**
+  - O padrão da linha de comando a ser seguido deve ser: **./tcp_client server_host server_port list**[FEITO]
 
   - Não encontrado o arquivo, o servidor busca então em uma determinada pasta e retorna o arquivo se encontrado; [FEITO]
 
