@@ -3,8 +3,6 @@ import socket
 import os
 import sys
 
-# IP = socket.gethostbyname(socket.gethostname())
-# PORT = 4457
 IP = sys.argv[1]
 PORT = int(sys.argv[2])
 ADDR = (IP, PORT)
@@ -27,8 +25,6 @@ def main():
     elif res == "OK":
         print(f"{msg}")
 
-    # data = input("> ")
-    # data = data.split(" ")
     cmd = sys.argv[3]
 
     if cmd == "help":
